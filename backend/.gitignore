@@ -1,0 +1,8 @@
+# Ignore environment files
+.env
+
+# Ignore Python cache directories
+__pycache__/
+
+# Ignore uploads folder in the parent directory
+../uploads/
