@@ -31,7 +31,15 @@ def detect_hidden_subscriptions(df):
     return subscriptions
 
 def analyze_anomalies(df):
-    df.columns = ['Value Date', 'Description', 'Ref', 'Debit', 'Credit', 'Balance']
+    expected_cols = ['Value Date', 'Description', 'Ref', 'Debit', 'Credit', 'Balance']
+    if len(df.columns) == 6:
+        df.columns = expected_cols
+    elif len(df.columns) == 5:
+        df.columns = ['Value Date', 'Description', 'Debit', 'Credit', 'Balance']
+    else:
+        raise ValueError(f"Unexpected number of columns: {len(df.columns)}")
+
+    # df.columns = ['Value Date', 'Description', 'Ref', 'Debit', 'Credit', 'Balance']
     df['Value Date'] = pd.to_datetime(df['Value Date'], errors='coerce')
     df['Debit'] = pd.to_numeric(df['Debit'], errors='coerce')
     df['Credit'] = pd.to_numeric(df['Credit'], errors='coerce')
