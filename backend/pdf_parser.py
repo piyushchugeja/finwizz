@@ -8,13 +8,12 @@ from dateutil import parser as dateparser
 
 
 HEADER_MAP = {
-    "date":        ["date", "txn date", "value date", "transaction date"],
+    "value date":  ["date", "txn date", "value date", "transaction date"],
     "description": ["particulars", "narration", "description", "remarks"],
     "debit":       ["withdrawal", "dr", "debit", "paid"],
     "credit":      ["deposit", "cr", "credit", "received"],
     "balance":     ["balance", "closing balance", "bal"]
 }
-
 
 def parse_pdf_file(pdf_path: str) -> list:
     if not os.path.isfile(pdf_path):
@@ -42,8 +41,8 @@ def parse_pdf_file(pdf_path: str) -> list:
             return 0
 
     def clean_and_parse(df: pd.DataFrame) -> pd.DataFrame:
-        df = df.dropna(subset=["date", "description"])
-        df["date"] = df["date"].apply(lambda s: dateparser.parse(str(s), dayfirst=True))
+        df = df.dropna(subset=["value date", "description"])
+        df["value date"] = df["value date"].apply(lambda s: dateparser.parse(str(s), dayfirst=True))
         df["debit"] = df["debit"].apply(parse_amount) if "debit" in df.columns else 0
         df["credit"] = df["credit"].apply(parse_amount) if "credit" in df.columns else 0
         df["amount"] = df.apply(lambda r: -r["debit"] if r["debit"] > 0 else r["credit"], axis=1)
@@ -52,7 +51,7 @@ def parse_pdf_file(pdf_path: str) -> list:
             df["balance"] = df["balance"].apply(parse_amount)
         df = df.reset_index(drop=True)
         df.insert(0, "serial", df.index + 1)
-        cols = ["serial", "date", "description", "amount"]
+        cols = ["serial", "value date", "description", "amount"]
         if "balance" in df.columns:
             cols.append("balance")
         return df[cols]
@@ -67,7 +66,7 @@ def parse_pdf_file(pdf_path: str) -> list:
                 date_str, debit_str, credit_str = m.groups()
                 desc = line[:m.start(1)].strip() or line[m.end(1):m.start(2)].strip()
                 records.append({
-                    "date": date_str,
+                    "value date": date_str,
                     "description": desc,
                     "debit": debit_str if float(debit_str.replace(",", "")) > 0 else "",
                     "credit": credit_str if float(credit_str.replace(",", "")) > 0 else ""
@@ -89,18 +88,26 @@ def parse_pdf_file(pdf_path: str) -> list:
             df = table.df
             raw_cols = [str(c) for c in df.iloc[0].tolist()]
             mapped = [map_header(c) for c in raw_cols]
-            matched_cols = [col for col in mapped if col in ["date", "description", "debit", "credit"]]
+
+            # Fix mismatch by trimming or padding
+            if len(mapped) < df.shape[1]:
+                mapped += [None] * (df.shape[1] - len(mapped))  # pad
+            elif len(mapped) > df.shape[1]:
+                mapped = mapped[:df.shape[1]]  # trim
+                
+            matched_cols = [col for col in mapped if col in ["value date", "description", "debit", "credit"]]
 
             if len(matched_cols) >= 2:
                 df = df[1:].copy()
                 df.columns = mapped
                 df = df.loc[:, df.columns.notna()]
+
                 try:
                     df = clean_and_parse(df)
                     for _, row in df.iterrows():
                         rec = {
                             "serial": int(row["serial"]),
-                            "date": row["date"].isoformat(),
+                            "value date": row["value date"].isoformat(),
                             "description": row["description"],
                             "amount": float(row["amount"])
                         }
@@ -117,7 +124,7 @@ def parse_pdf_file(pdf_path: str) -> list:
         for _, row in df.iterrows():
             rec = {
                 "serial": int(row["serial"]),
-                "date": row["date"].isoformat(),
+                "value date": row["value date"].isoformat(),
                 "description": row["description"],
                 "amount": float(row["amount"])
             }
