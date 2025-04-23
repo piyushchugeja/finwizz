@@ -1,5 +1,4 @@
-# 💸 FinWizz – by CodeBrew
-## Led by Simran Ahuja
+# FinWizz – by CodeBrew
 
 FinWizz is an intelligent personal finance analyzer that helps users make smarter financial decisions by parsing their bank statements or UPI transaction history. It automatically detects hidden subscriptions, spending anomalies, classifies transactions, and provides personalized suggestions on saving, budgeting, and investing.
 
